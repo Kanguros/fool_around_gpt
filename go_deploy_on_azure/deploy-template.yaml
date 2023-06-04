@@ -1,0 +1,84 @@
+parameters:
+  - name: environment
+    type: string
+  - name: package_name  # ${{ parameters.package_name }}
+    type: string
+  - name: package_version  # ${{ parameters.package_version }}
+    type: string
+  - name: host  ${{ parameters.host }}
+    type: string
+  - name: username  ${{ parameters.username }}
+    type: string
+  - name: password  ${{ parameters.password }}
+    type: string
+
+
+steps:
+  - checkout: self
+    clean: true
+
+  - task: WinRM@2
+    displayName: 'Copy Files to Remote Server'
+    inputs:
+      ConnectionType: 'WinRM'
+      TargetMachines: '${{ parameters.host }}'
+      RunAsPreJob: true
+      PreCommand: 'New-Item -Path "C:/Deployment" -ItemType "directory" -Force'
+      Files: '$(Build.SourcesDirectory)/RepositoryFiles/*'
+      WinRMProtocol: 'Http'
+      UserName: '${{ parameters.username }}'
+      Password: '${{ parameters.password }}'
+
+  - task: UniversalPackages@0
+    displayName: 'Download Package'
+    inputs:
+      feedsToUse: 'select'
+      packageDownloadOptions: 'single'
+      downloadDirectory: '$(Build.ArtifactStagingDirectory)/Package'
+      packageFeed: 'MyUniversalFeed'
+      packageName: '${{ parameters.package_name }}'
+      packageVersion: '${{ parameters.package_version }}'
+
+  - task: WinRM@2
+    displayName: 'Upload Package to Remote Server'
+    inputs:
+      ConnectionType: 'WinRM'
+      TargetMachines: '${{ parameters.host }}'
+      RunAsPreJob: true
+      PreCommand: 'New-Item -Path "C:/Deployment/Packages" -ItemType "directory" -Force'
+      Files: '$(Build.ArtifactStagingDirectory)/Package/*'
+      WinRMProtocol: 'Http'
+      UserName: '${{ parameters.username }}'
+      Password: '${{ parameters.password }}'
+
+  - task: WinRM@2
+    displayName: 'Install and Start Service'
+    inputs:
+      ConnectionType: 'WinRM'
+      TargetMachines: '${{ parameters.host }}'
+      RunAsPreJob: true
+      PreCommand: |
+        $serviceName = 'MyService'
+        $servicePath = 'C:/Deployment/Packages/${{ parameters.package_name }}.exe'
+        $configPath = 'C:/Deployment/Packages/${{ parameters.package_name }}.config'
+
+        # Stop and remove existing service
+        sc.exe stop $serviceName
+        sc.exe delete $serviceName
+
+        # Install new service
+        sc.exe create $serviceName binPath= "$servicePath --config $configPath" start= auto
+
+        # Start the service
+        sc.exe start $serviceName
+
+        # Verify service status
+        $serviceStatus = Get-Service $serviceName
+        if ($serviceStatus.Status -eq 'Running') {
+          Write-Host "Service '$serviceName' is running."
+        } else {
+          throw "Service '$serviceName' failed to start."
+        }
+      WinRMProtocol: 'Http'
+      UserName: '${{ parameters.username }}'
+      Password: '${{ parameters.password }}'
