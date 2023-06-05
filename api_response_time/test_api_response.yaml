@@ -1,0 +1,26 @@
+parameters:
+  - name: baseUrl
+    type: string
+    default: "https://api.example.com"
+    description: "Base URL of the API."
+
+  - name: endpoints
+    type: object
+    default:
+      - "/endpoint1"
+      - "/endpoint2"
+      - "/endpoint3"
+    description: "List of API endpoints to test."
+
+jobs:
+  - job: TestAPIResponseTime
+    displayName: "Test API Response Time"
+    pool:
+      vmImage: "windows-latest"
+
+    steps:
+      - task: PowerShell@2
+        displayName: "Run API Response Time Test"
+        inputs:
+            targetType: 'filePath'
+            filePath: 'ResponseTimeTest.ps1'

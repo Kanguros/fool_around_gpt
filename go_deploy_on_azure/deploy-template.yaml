@@ -5,11 +5,15 @@ parameters:
     type: string
   - name: package_version  # ${{ parameters.package_version }}
     type: string
-  - name: host  ${{ parameters.host }}
+  - name: host
     type: string
-  - name: username  ${{ parameters.username }}
+  - name: username
     type: string
-  - name: password  ${{ parameters.password }}
+  - name: password
+    type: string
+  - name: service_dir
+    type: string
+  - name: package_feed
     type: string
 
 
@@ -23,7 +27,7 @@ steps:
       ConnectionType: 'WinRM'
       TargetMachines: '${{ parameters.host }}'
       RunAsPreJob: true
-      PreCommand: 'New-Item -Path "C:/Deployment" -ItemType "directory" -Force'
+      PreCommand: 'New-Item -Path "${{ parameters.service_dir }}" -ItemType "directory" -Force'
       Files: '$(Build.SourcesDirectory)/RepositoryFiles/*'
       WinRMProtocol: 'Http'
       UserName: '${{ parameters.username }}'
@@ -35,7 +39,7 @@ steps:
       feedsToUse: 'select'
       packageDownloadOptions: 'single'
       downloadDirectory: '$(Build.ArtifactStagingDirectory)/Package'
-      packageFeed: 'MyUniversalFeed'
+      packageFeed: '${{ parameters.package_feed }}'
       packageName: '${{ parameters.package_name }}'
       packageVersion: '${{ parameters.package_version }}'
 
@@ -45,7 +49,7 @@ steps:
       ConnectionType: 'WinRM'
       TargetMachines: '${{ parameters.host }}'
       RunAsPreJob: true
-      PreCommand: 'New-Item -Path "C:/Deployment/Packages" -ItemType "directory" -Force'
+      PreCommand: 'New-Item -Path "${{ parameters.service_dir }}" -ItemType "directory" -Force'
       Files: '$(Build.ArtifactStagingDirectory)/Package/*'
       WinRMProtocol: 'Http'
       UserName: '${{ parameters.username }}'
@@ -59,8 +63,8 @@ steps:
       RunAsPreJob: true
       PreCommand: |
         $serviceName = 'MyService'
-        $servicePath = 'C:/Deployment/Packages/${{ parameters.package_name }}.exe'
-        $configPath = 'C:/Deployment/Packages/${{ parameters.package_name }}.config'
+        $servicePath = '${{ parameters.service_dir }}/${{ parameters.package_name }}.exe'
+        $configPath = '${{ parameters.service_dir }}/${{ parameters.package_name }}.config'
 
         # Stop and remove existing service
         sc.exe stop $serviceName

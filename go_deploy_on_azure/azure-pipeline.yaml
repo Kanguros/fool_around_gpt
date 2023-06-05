@@ -10,6 +10,12 @@ variables:
   # Name of the package to be pulled and deployed.
   - name: package_name
     value: MyApplication
+  - name: package_feed
+    value: UniversalPackageFeed
+  - name: service_dir
+    value: "O:\AppService\"
+
+
 
 parameters:
   - name: acc_env
@@ -51,8 +57,10 @@ jobs:
       - template: deploy-template.yaml
         parameters:
           environment: ${{ parameters.acc_env.name }}
+          package_feed: ${{ variables.package_feed }}
           package_name: ${{ variables.package_name }}
           package_version: ${{ parameters.acc_env.package_version }}
+          service_dir: ${{ variables.service_dir }}
           host: ${{ parameters.acc_env.host }}
           username: ${{ parameters.acc_env.username }}
           password: '$(deploy_user_password)'
@@ -73,8 +81,10 @@ jobs:
       - template: deploy-template.yaml
         parameters:
           environment: ${{ parameters.prd_env.name }}
+          package_feed: ${{ variables.package_feed }}
           package_name: ${{ variables.package_name }}
           package_version: ${{ parameters.prd_env.package_version }}
+          service_dir: ${{ variables.service_dir }}
           host: ${{ parameters.prd_env.host }}
           username: ${{ parameters.prd_env.username }}
           password: '$(deploy_user_password)'
